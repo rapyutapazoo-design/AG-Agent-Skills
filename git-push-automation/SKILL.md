@@ -1,6 +1,6 @@
----
-name: git-deploy-assistant
-description: Use this skill when the user asks to review changes, create a commit, or push code. It automates checking git status/diff, reviewing against coding rules, generating a commit message, and pushing to the remote repository.
+﻿---
+name: git-push-automation
+description: ACTIVATED ONLY when the user explicitly requests to "commit and push" or "deploy" code. This skill automates git workflows and security checks.
 ---
 
 # Git Deploy Assistant
@@ -38,3 +38,4 @@ description: Use this skill when the user asks to review changes, create a commi
 
 > [!WARNING]
 > ユーザーの承認を得るまでは、絶対に `git commit` や `git push` を実行してはいけません。機密チェックとブランチ確認は必須です。
+
