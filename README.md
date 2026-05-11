@@ -1,4 +1,4 @@
-﻿# AG-Agent-Skills
+# AG-Agent-Skills
 
 ## 概要
 AG-Agent-Skills は、Gemini CLI やその他の AI コーディングエージェントで使用できる拡張スキルを集めたリポジトリです。本リポジトリを利用することで、各種開発業務の自動化やコンサルティングなど、エージェントをより強力にカスタマイズできます。
@@ -11,6 +11,7 @@ AG-Agent-Skills は、Gemini CLI やその他の AI コーディングエージ�
 
 - [システム設計コンサルタント](./system-design-consultant/)
 - [Gitプッシュ自動化スキル](./git-push-automation/)
+- [実装プランナー](./implementation-planner/)
 
 ---
 *Created by rapyutapazoo-design.*
