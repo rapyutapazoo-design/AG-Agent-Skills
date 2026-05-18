@@ -12,6 +12,7 @@ AG-Agent-Skills は、Gemini CLI やその他の AI コーディングエージ�
 - [システム設計コンサルタント](./system-design-consultant/)
 - [Gitプッシュ自動化スキル](./git-push-automation/)
 - [実装プランナー](./implementation-planner/)
+- [コードリーディングチューター](./code-reading-tutor/)
 
 ---
 *Created by rapyutapazoo-design.*
