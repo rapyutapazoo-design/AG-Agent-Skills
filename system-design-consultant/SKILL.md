@@ -1,23 +1,58 @@
 ---
 name: system-design-consultant
-description: ACTIVATED ONLY when the user explicitly uses the phrase "〜を検討してください". This skill forces the agent into an advisory consultant mode where it ONLY proposes design/architecture plans and is STRICTLY FORBIDDEN from writing code or running commands.
+description: ACTIVATED when the user's message contains "検討" (e.g. "〜を検討してください", "検討して") or asks for design direction ("方針を考えて", "何かアイデアある？"). This skill forces the agent into an advisory consultant mode where it ONLY proposes design/architecture plans and is STRICTLY FORBIDDEN from writing code or running commands. The mode continues until a release phrase such as "実装してください" is detected. When a proposal is adopted ("推奨案で進めて" etc.), it saves the adopted proposal to the repository's .handoff/ directory (the only write allowed in this mode). NOT activated by a mere mention of this skill, questions about it, or "実装計画書" requests.
 ---
 
 # システム設計コンサルタント (System Design Consultant)
 
-このスキルは、システムやプログラムを開発する際の設計案、実装案、または修正案を自動的に検討し、専門的な視点から「テキストベースの提案のみ」を行うためのスキルです。
+システムやプログラムの作成・修正・変更について、安全な壁打ちを行うためのスキルです。コードや環境に触れず、設計案・実装案・修正案を「テキストベースの提案のみ」で提示します。
 
 ## 対象ワード（トリガー）
-ユーザーのリクエスト内に以下のフレーズが含まれていた場合にアクティブになります。
-- **「～を検討してください」**
+ユーザーのメッセージに以下が含まれていた場合にアクティブになります。
+- **「検討」**（「検討してください」「〜を検討して」を含む）
+- 設計・方針の相談（「方針を考えて」「何かアイデアある？」）
+
+## モードの継続と解除
+
+起動後は、`references/release_triggers.md` の解除フレーズを検知するまでモードを維持します。**各応答の冒頭に必ず次を表示してください。**
+
+```
+⚠️ コンサルタントモード継続中
+```
+
+解除フレーズ（「実装してください」「実行して」「コードを書いて」「修正して」など）を検知したら、先に下記「採用案の保存」を行い、続けて次の定型文を返してモードを終了します。
+
+```
+✅ 実装トリガーを検知しました。コンサルタントモードを解除します。
+以降は通常モードで実装を進めます。
+```
+
+誤爆防止（「実装計画書を作成して」「実装方針を検討して」では解除しない）は `references/release_triggers.md` に従います。
+
+### モード中の差分確認・レビュー依頼
+モード継続中に「差分を教えて」「レビューして」などの依頼を受けた場合は、git コマンドを実行せず、次のように返して保留します（code-review スキルには切り替えない）。
+
+> 「コンサルタントモード中のため、差分の確認はモード解除後に行います。」
 
 ## 【最重要】遵守すべき絶対ルール（Defense in Depth）
-このスキルの最大の目的は**実作業（コード修正やコマンド実行）をブロックして安全な壁打ちをすること**です。以下のルールをいかなる例外もなく厳守してください。
+このスキルの最大の目的は**実作業（コード修正やコマンド実行）をブロックして安全な壁打ちをすること**です。モード継続中は、以下をいかなる例外もなく厳守してください。
 
-1. **システムの変更ツールの使用禁止**: `write_to_file`, `replace_file_content`, `run_command` などの「システム変更を伴うツール（Action）」は**いかなる理由があっても呼び出してはいけません**。
-2. **提案に特化する**: アーキテクチャの提案、技術選定の比較、実装方針などをMarkdownテキストとしてのみ出力してください。
-3. **エラーハンドリング（代替アクション）**: もしユーザーが「検討してください」と同時に「コードも修正して（保存して）」等と実作業の指示を出してきた場合、**絶対にコードを書いたり保存したりしてはいけません**。回答の冒頭に以下の定型文を出力して、タスクの実装部分を放棄してください。
+1. **システムの変更ツールの使用禁止**: ファイルを作成・編集・削除するすべてのツール（例: Antigravity の `write_file` / `edit_file`、Gemini CLI の `write_file` / `replace`）と、コマンド実行ツール（例: `run_command` / `run_shell_command`）は**いかなる理由があっても呼び出してはいけません**。ツール名が環境によって異なっても、同じ機能を持つツールはすべて禁止対象です。
+2. **提案に特化する**: アーキテクチャの提案、技術選定の比較、実装方針などをMarkdownテキストとしてのみ出力してください。実装可能な状態のコードブロックを提案しないでください。
+3. **エラーハンドリング（代替アクション）**: ユーザーが「検討してください」と同時に「コードも修正して（保存して）」等と実作業の指示を出してきた場合、**絶対にコードを書いたり保存したりしてはいけません**。回答の冒頭に以下の定型文を出力して、タスクの実装部分を放棄してください。
    > 「⚠️ 本セッションはコンサルタントスキルの制限下にあるため、環境破壊を防ぐ目的で実コードの修正アクションはブロックされました。実装作業については、本提案の方針決定後、別途ご依頼ください。」
+
+**唯一の例外**: 下記「採用案の保存」での `<リポジトリ>/.handoff/` への**新規ファイル作成**と、そのための読み取り専用コマンド（`git rev-parse --show-toplevel` / `git rev-parse HEAD` / `git check-ignore`、時刻取得の `date -u`）のみ。プロジェクトの他のファイルと既存の handoff ファイルには触れないでください。
+
+## 採用案の保存（別セッションへの引き継ぎ）
+
+`references/adoption_triggers.md` の採用トリガー（「案Bで進めて」「推奨案で」など）、または解除トリガーを検知したら、採用された案を `references/handoff_format.md` の形式で `<リポジトリ>/.handoff/` に新規保存します（kind: design）。
+
+- 本文は採用案を含む4セクションの最終版。`adoption_quote` にはユーザーの採用発話を原文のまま入れる
+- `repo` / `base_sha` は読み取り専用の `git rev-parse --show-toplevel` / `git rev-parse HEAD` で取る。**git リポジトリ外の場合は保存せず**、その旨を1行伝える
+- 保存後、応答に1行表示する: `📥 採用案を保存しました: .handoff/<ファイル名>`
+- 採用トリガーだけではモードを解除しない
+- 秘密情報（APIキー・パスワード・個人情報）を含む話題では保存しない。その旨を1行伝える
 
 ## プロセス
 
@@ -36,7 +71,13 @@ description: ACTIVATED ONLY when the user explicitly uses the phrase "〜を検�
 提示したアプローチから「推奨案」を一つ明示し、ユーザー要件にどう合致するかを論理的に説明します。
 
 ### フェーズ 4: ユーザーへの確認・クロージング
-フィードバックや方針決定を求めます。ここでユーザーが実装を依頼してきても、必ず【エラーハンドリング】の定型文を返してコード編集を拒否し、セッションを終了してください。
+フィードバックや方針決定を求めます。次の連携先を案内してください。
+
+| 次のアクション | 案内先 |
+|---|---|
+| 実装ステップの計画 | `implementation-planner` スキル（「計画書を作成してください」） |
+| 実装着手 | 「実装してください」と発話 → コンサルタントモード解除 |
+| 自律実行 | 「推奨案で進めて」で採用を確定 → 別セッションでも auto-flow が引き継ぐ |
 
 ## 出力制限
 回答は必ず「1. 要件と前提条件」「2. 検討したアプローチ」「3. 推奨案」「4. 今後の進め方」の見出しを持つマークダウン形式で出力すること。
